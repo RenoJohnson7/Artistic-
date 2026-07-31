@@ -1,4 +1,4 @@
-html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,10 +41,11 @@ html
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore'; 
 
-        // --- Your Firebase Configuration ---
+        // --- Your Exact Firebase Configuration from Console ---
         const firebaseConfig = {
           apiKey: "AIzaSyA-Uw_690-VJNExmR3Uv9iQguus-K50w4",
           authDomain: "artistic-d885f.firebaseapp.com",
+          databaseURL: "https://artistic-d885f-default-rtdb.firebaseio.com",
           projectId: "artistic-d885f",
           storageBucket: "artistic-d885f.firebasestorage.app",
           messagingSenderId: "682686110297",
@@ -65,11 +66,9 @@ html
           const [authLoading, setAuthLoading] = useState(true);
 
           useEffect(() => {
-            // This listener automatically detects if a user is logged in or out
             const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
               if (firebaseUser) {
                 setUser(firebaseUser);
-                // Use the display name we set during signup, or fallback to email
                 setUsername(firebaseUser.displayName || firebaseUser.email.split('@')[0]);
                 setIsLoggedIn(true);
               } else {
@@ -107,7 +106,7 @@ html
 
         // --- Welcome & Login/Signup Flow Component ---
         function WelcomeLoginFlow() {
-          const [view, setView] = useState('welcome'); // 'welcome', 'login', or 'signup'
+          const [view, setView] = useState('welcome'); 
           const [formData, setFormData] = useState({ username: '', email: '', password: '' });
           const [isSubmitting, setIsSubmitting] = useState(false);
           const [toast, setToast] = useState({ show: false, text: '', isError: false }); 
@@ -123,28 +122,20 @@ html
             
             try {
               if (view === 'signup') {
-                // 1. Create the user in Firebase Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-                
-                // 2. Set their display name so we can show it in the app
                 await updateProfile(userCredential.user, { displayName: formData.username });
-                
-                // 3. Save a record to your database
                 await setDoc(doc(db, 'users', userCredential.user.uid), {
                   username: formData.username,
                   email: formData.email,
                   createdAt: serverTimestamp()
                 });
-                
                 showMessage("Account created! Logging you in...");
               } else if (view === 'login') {
-                // Simply log in the existing user
                 await signInWithEmailAndPassword(auth, formData.email, formData.password);
                 showMessage("Welcome back!");
               }
             } catch (error) {
               console.error("Auth Error:", error);
-              // Show the exact Firebase error message on screen so you can debug it!
               showMessage(error.message || "An error occurred. Please try again.", true);
               setIsSubmitting(false);
             }
@@ -801,6 +792,5 @@ html
     </script>
 </body>
 </html>
-
 
 
