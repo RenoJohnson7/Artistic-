@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,13 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artistic - Creative Hub</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Babel (Compiles React JSX in the browser) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> 
 
-    <!-- Import Map to load React, Icons, and Firebase directly in the browser -->
     <script type="importmap">
       {
         "imports": {
@@ -27,21 +22,17 @@
     </script>
 </head>
 <body class="bg-black text-white">
-    <!-- This is where the React App will render -->
     <div id="root"></div> 
 
-    <!-- The actual App Code -->
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { ChevronLeft, Lightbulb, Palette, MessageSquare, Send, Plus, Share, X, Brush, Upload } from 'lucide-react'; 
         
-        // Imported real authentication methods
         import { initializeApp } from 'firebase/app';
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore'; 
 
-        // --- Your Exact Firebase Configuration from Console ---
         const firebaseConfig = {
           apiKey: "AIzaSyA-Uw_690-VJNExmR3Uv9iQguus-K50w4",
           authDomain: "artistic-d885f.firebaseapp.com",
@@ -58,7 +49,6 @@
         const db = getFirestore(app);
         const appId = "artistic-app-prod";  
 
-        // --- Main App Component ---
         function App() {
           const [user, setUser] = useState(null);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -104,7 +94,6 @@
           );
         } 
 
-        // --- Welcome & Login/Signup Flow Component ---
         function WelcomeLoginFlow() {
           const [view, setView] = useState('welcome'); 
           const [formData, setFormData] = useState({ username: '', email: '', password: '' });
@@ -258,7 +247,6 @@
           );
         } 
 
-        // --- Main Fullscreen Application Layout ---
         function MainApp({ user, username, onLogout }) {
           const [currentScreen, setCurrentScreen] = useState('Home'); 
 
@@ -302,7 +290,6 @@
           );
         } 
 
-        // --- Fullscreen App Screens --- 
         function HomeScreen({ navigate }) {
           const tiles = [
             { key: 'Suggestions', color: '#8BC34A', icon: Lightbulb, desc: 'View discussions and give feedback on community artwork' },
@@ -786,7 +773,6 @@
           );
         }
 
-        // Render the React App into the root DOM node
         const root = createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
