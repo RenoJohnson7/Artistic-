@@ -46,8 +46,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = "artistic-app-prod";  
+        const db = getFirestore(app);  
 
         function App() {
           const [user, setUser] = useState(null);
@@ -331,17 +330,21 @@
         function ChatScreen({ user, username }) {
           const [messages, setMessages] = useState([]);
           const [inputText, setInputText] = useState('');
+          const [errorBanner, setErrorBanner] = useState('');
           const endOfMessagesRef = useRef(null); 
 
           useEffect(() => {
             if (!user) return;
-            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'messages');
+            const messagesRef = collection(db, 'community_messages');
             
             const unsubscribe = onSnapshot(messagesRef, (snapshot) => {
               const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               msgs.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
               setMessages(msgs);
-            }, (error) => console.error(error)); 
+            }, (error) => {
+              console.error("Chat fetch error:", error);
+              setErrorBanner("Database read error. Check Firestore permissions.");
+            }); 
 
             return () => unsubscribe();
           }, [user]); 
@@ -355,9 +358,10 @@
             if (!inputText.trim()) return;
             const textToSend = inputText;
             setInputText(''); 
+            setErrorBanner('');
             
             try {
-              await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
+              await addDoc(collection(db, 'community_messages'), {
                 text: textToSend,
                 userId: user.uid,
                 authorName: username,
@@ -365,13 +369,17 @@
               });
             } catch (error) {
               console.error("Error sending message:", error);
+              setErrorBanner("Failed to send message: " + error.message);
             }
           }; 
 
           return (
             <div className="flex-1 flex flex-col bg-white/95 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-white/20 text-gray-800 max-w-4xl mx-auto w-full h-[650px]">
-              <div className="p-4 bg-gray-100 border-b font-bold text-gray-700 flex items-center gap-2">
-                <MessageSquare size={20} className="text-[#2E7D32]" /> Global Artist Chat Room
+              <div className="p-4 bg-gray-100 border-b font-bold text-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare size={20} className="text-[#2E7D32]" /> Global Artist Chat Room
+                </div>
+                {errorBanner && <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">{errorBanner}</span>}
               </div> 
 
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -425,20 +433,20 @@
 
           useEffect(() => {
             if (!user) return;
-            const creationsRef = collection(db, 'artifacts', appId, 'public', 'data', 'creations');
+            const creationsRef = collection(db, 'community_creations');
             
             const unsubscribe = onSnapshot(creationsRef, (snapshot) => {
               const arts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               arts.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
               setCreations(arts);
-            }, (error) => console.error(error)); 
+            }, (error) => console.error("Creations fetch error:", error)); 
 
             return () => unsubscribe();
           }, [user]); 
 
           const pingToSuggestions = async (creationId) => {
             try {
-              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'creations', creationId);
+              const docRef = doc(db, 'community_creations', creationId);
               await updateDoc(docRef, { pinged: true });
             } catch (error) {
               console.error("Error pinging:", error);
@@ -501,16 +509,38 @@
         function CreationUploadModal({ user, username, onClose }) {
           const [tab, setTab] = useState('upload'); 
           const [imagePreview, setImagePreview] = useState(null);
+          const [isPublishing, setIsPublishing] = useState(false);
+          const [uploadError, setUploadError] = useState('');
           const canvasRef = useRef(null);
           const [isDrawingProcess, setIsDrawingProcess] = useState(false); 
 
+          // Compresses image so it never exceeds Firestore's 1MB document limit
           const handleFileUpload = (e) => {
             const file = e.target.files[0];
             if (!file) return; 
 
             const reader = new FileReader();
             reader.onload = (event) => {
-              setImagePreview(event.target.result);
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 600; // Resize to max 600px width/height to keep size under 200KB
+                if (width > height && width > maxDim) {
+                  height *= maxDim / width;
+                  width = maxDim;
+                } else if (height > maxDim) {
+                  width *= maxDim / height;
+                  height = maxDim;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                setImagePreview(canvas.toDataURL('image/jpeg', 0.7));
+              };
+              img.src = event.target.result;
             };
             reader.readAsDataURL(file);
           }; 
@@ -569,22 +599,28 @@
             if (tab === 'draw') {
               const canvas = canvasRef.current;
               if (!canvas) return;
-              dataUrl = canvas.toDataURL('image/png');
+              // Compress drawn canvas down to safe size
+              dataUrl = canvas.toDataURL('image/jpeg', 0.7);
             } 
 
             if (!dataUrl) return; 
+            setIsPublishing(true);
+            setUploadError('');
 
             try {
-              await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'creations'), {
+              await addDoc(collection(db, 'community_creations'), {
                 imageData: dataUrl,
                 userId: user.uid,
                 authorName: username,
                 timestamp: serverTimestamp(),
                 pinged: false
               });
+              setIsPublishing(false);
               onClose();
             } catch (error) {
               console.error("Error publishing art:", error);
+              setUploadError("Upload failed: " + error.message);
+              setIsPublishing(false);
             }
           }; 
 
@@ -597,6 +633,8 @@
                     <X size={20} />
                   </button>
                 </div> 
+
+                {uploadError && <div className="mb-3 w-full bg-red-100 text-red-700 text-xs p-2 rounded text-center">{uploadError}</div>}
 
                 <div className="flex bg-gray-100 p-1 rounded-xl w-full mb-4">
                   <button
@@ -656,10 +694,10 @@
 
                 <button
                   onClick={publishArt}
-                  disabled={tab === 'upload' && !imagePreview}
+                  disabled={(tab === 'upload' && !imagePreview) || isPublishing}
                   className="w-full bg-[#4CAF50] hover:bg-[#43a047] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-lg text-base disabled:opacity-50"
                 >
-                  <Plus size={20} /> Publish to Community Gallery
+                  <Plus size={20} /> {isPublishing ? 'Publishing...' : 'Publish to Community Gallery'}
                 </button>
               </div>
             </div>
@@ -674,14 +712,14 @@
           useEffect(() => {
             if (!user) return;
             
-            const creationsRef = collection(db, 'artifacts', appId, 'public', 'data', 'creations');
+            const creationsRef = collection(db, 'community_creations');
             const unsubCreations = onSnapshot(creationsRef, (snapshot) => {
               const arts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               const filtered = arts.filter(a => a.pinged).sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
               setPingedArt(filtered);
             }, (err) => console.error(err)); 
 
-            const suggestionsRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
+            const suggestionsRef = collection(db, 'community_suggestions');
             const unsubSuggestions = onSnapshot(suggestionsRef, (snapshot) => {
               const suggs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               suggs.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
@@ -696,7 +734,7 @@
             if (!text || !text.trim()) return; 
 
             try {
-              await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'suggestions'), {
+              await addDoc(collection(db, 'community_suggestions'), {
                 creationId,
                 text,
                 userId: user.uid,
