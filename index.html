@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,7 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Babel (Compiles React JSX in the browser) -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> 
 
     <!-- Import Map to load React, Icons, and Firebase directly in the browser -->
     <script type="importmap">
@@ -27,7 +28,7 @@
 </head>
 <body class="bg-black text-white">
     <!-- This is where the React App will render -->
-    <div id="root"></div>
+    <div id="root"></div> 
 
     <!-- The actual App Code -->
     <script type="text/babel" data-type="module">
@@ -35,11 +36,12 @@
         import { createRoot } from 'react-dom/client';
         import { ChevronLeft, Lightbulb, Palette, MessageSquare, Send, Plus, Share, X, Brush, Upload } from 'lucide-react'; 
         
+        // Imported real authentication methods
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore'; 
 
-        // --- Firebase Initialization ---
+        // --- Your Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyA-Uw_690-VJNExmR3Uv9iQguus-K50w4",
           authDomain: "artistic-d885f.firebaseapp.com",
@@ -53,111 +55,97 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = "artistic-app-prod";
+        const appId = "artistic-app-prod";  
 
         // --- Main App Component ---
         function App() {
           const [user, setUser] = useState(null);
           const [isLoggedIn, setIsLoggedIn] = useState(false);
           const [username, setUsername] = useState(''); 
+          const [authLoading, setAuthLoading] = useState(true);
 
           useEffect(() => {
-            // Fallback user object to prevent infinite hanging if Firebase blocks anonymous auth
-            const fallbackTimer = setTimeout(() => {
-              if (!user) {
-                console.warn("Firebase auth timeout reached. Using fallback guest session.");
-                setUser({ uid: 'guest-' + Math.random().toString(36).substring(7) });
-              }
-            }, 3000);
-
-            const initAuth = async () => {
-              try {
-                await signInAnonymously(auth);
-              } catch (error) {
-                console.error("Auth Error:", error);
-              }
-            };
-            initAuth();
-            
+            // This listener automatically detects if a user is logged in or out
             const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
               if (firebaseUser) {
                 setUser(firebaseUser);
-                clearTimeout(fallbackTimer);
+                // Use the display name we set during signup, or fallback to email
+                setUsername(firebaseUser.displayName || firebaseUser.email.split('@')[0]);
+                setIsLoggedIn(true);
+              } else {
+                setUser(null);
+                setIsLoggedIn(false);
+                setUsername('');
               }
+              setAuthLoading(false);
             });
             
-            return () => {
-              unsubscribe();
-              clearTimeout(fallbackTimer);
-            };
+            return () => unsubscribe();
           }, []); 
 
-          if (!user) {
+          if (authLoading) {
             return (
               <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center font-sans">
-                <div className="text-[#22c55e] animate-pulse font-bold text-xl">Connecting to Server...</div>
+                <div className="text-[#22c55e] animate-pulse font-bold text-xl">Loading Artistic...</div>
               </div>
             );
           } 
 
           return (
             <div className="min-h-screen w-full relative font-sans overflow-x-hidden text-white flex flex-col">
-              {/* Background Image & Dark Overlay */}
               <div className="fixed inset-0 z-[-2] bg-[url('https://img.magnific.com/premium-photo/green-black-poster-with-anime-character-green-hair_1172671-16750.jpg')] bg-cover bg-center bg-fixed"></div>
               <div className="fixed inset-0 z-[-1] bg-black/60"></div> 
 
               {!isLoggedIn ? (
-                <WelcomeLoginFlow 
-                  user={user} 
-                  onLoginSuccess={(name) => {
-                    setUsername(name);
-                    setIsLoggedIn(true);
-                  }} 
-                />
+                <WelcomeLoginFlow />
               ) : (
-                <MainApp user={user} username={username} onLogout={() => setIsLoggedIn(false)} />
+                <MainApp user={user} username={username} onLogout={() => signOut(auth)} />
               )}
             </div>
           );
         } 
 
-        // --- Welcome & Login Flow Component ---
-        function WelcomeLoginFlow({ user, onLoginSuccess }) {
-          const [view, setView] = useState('welcome');
-          const [formData, setFormData] = useState({ username: '', password: '', email: '', dob: '' });
+        // --- Welcome & Login/Signup Flow Component ---
+        function WelcomeLoginFlow() {
+          const [view, setView] = useState('welcome'); // 'welcome', 'login', or 'signup'
+          const [formData, setFormData] = useState({ username: '', email: '', password: '' });
           const [isSubmitting, setIsSubmitting] = useState(false);
           const [toast, setToast] = useState({ show: false, text: '', isError: false }); 
 
           const showMessage = (text, isError = false) => {
             setToast({ show: true, text, isError });
-            setTimeout(() => setToast({ show: false, text: '', isError: false }), 3000);
+            setTimeout(() => setToast({ show: false, text: '', isError: false }), 5000);
           }; 
 
-          const handleLoginSubmit = async (e) => {
+          const handleSubmit = async (e) => {
             e.preventDefault();
-            if (!user) {
-              showMessage("Connecting to server... Please try again.", true);
-              return;
-            } 
-
             setIsSubmitting(true);
+            
             try {
-              const userCollection = collection(db, 'artifacts', appId, 'users', user.uid, 'registrations');
-              await addDoc(userCollection, {
-                username: formData.username,
-                email: formData.email,
-                dateOfBirth: formData.dob,
-                createdAt: new Date().toISOString()
-              }); 
-
-              showMessage("Success! Logging you in...");
-              setTimeout(() => {
-                onLoginSuccess(formData.username);
-              }, 1000); 
-
+              if (view === 'signup') {
+                // 1. Create the user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+                
+                // 2. Set their display name so we can show it in the app
+                await updateProfile(userCredential.user, { displayName: formData.username });
+                
+                // 3. Save a record to your database
+                await setDoc(doc(db, 'users', userCredential.user.uid), {
+                  username: formData.username,
+                  email: formData.email,
+                  createdAt: serverTimestamp()
+                });
+                
+                showMessage("Account created! Logging you in...");
+              } else if (view === 'login') {
+                // Simply log in the existing user
+                await signInWithEmailAndPassword(auth, formData.email, formData.password);
+                showMessage("Welcome back!");
+              }
             } catch (error) {
-              console.error("Error saving data:", error);
-              showMessage("Failed to save data. Try again.", true);
+              console.error("Auth Error:", error);
+              // Show the exact Firebase error message on screen so you can debug it!
+              showMessage(error.message || "An error occurred. Please try again.", true);
               setIsSubmitting(false);
             }
           }; 
@@ -168,13 +156,11 @@
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
               `}</style> 
 
-              {/* Header */}
               <header className="fixed top-0 left-0 w-full h-20 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
                 <h1 className="text-2xl md:text-[28px] font-bold text-white">Artistic</h1>
                 <nav className="flex gap-4 md:gap-10">
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Homepage</a>
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Server</a>
-                  <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Rules</a>
                 </nav>
               </header> 
 
@@ -183,78 +169,98 @@
                   <p className="text-[8vw] md:text-[5vw] font-serif font-bold text-[#c0c0c0] mb-10 drop-shadow-[2px_2px_8px_rgba(0,0,0,0.7)] leading-[1.2] max-w-[1000px]">
                     Share your art, with millions of Artists
                   </p>
-                  <button 
-                    onClick={() => setView('login')}
-                    className="inline-block bg-[#22c55e] text-white px-10 py-4 rounded-full text-xl font-bold shadow-[6px_6px_12px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:bg-[#16a34a] transition-all cursor-pointer"
-                  >
-                    Login now
-                  </button>
+                  <div className="flex gap-4 flex-col sm:flex-row">
+                    <button 
+                      onClick={() => setView('login')}
+                      className="bg-[#22c55e] text-white px-10 py-4 rounded-full text-xl font-bold shadow-[6px_6px_12px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:bg-[#16a34a] transition-all"
+                    >
+                      Log In
+                    </button>
+                    <button 
+                      onClick={() => setView('signup')}
+                      className="bg-white text-green-800 px-10 py-4 rounded-full text-xl font-bold shadow-[6px_6px_12px_rgba(0,0,0,0.4)] hover:-translate-y-1 hover:bg-gray-200 transition-all"
+                    >
+                      Sign Up Free
+                    </button>
+                  </div>
                 </main>
               ) : (
                 <div className="flex flex-col justify-center items-center min-h-screen pt-20 px-4 animate-[fadeIn_0.5s_ease-in-out] w-full">
-                  <h1 className="text-white text-3xl text-center mb-8 drop-shadow-[0_0_10px_rgba(0,255,0,0.8),0_0_20px_rgba(0,255,0,0.4)]">
-                    Login
-                  </h1>
-                  
-                  <form onSubmit={handleLoginSubmit} className="bg-black/60 p-8 rounded-[15px] w-full max-w-[400px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 flex flex-col gap-5">
-                    <div className="flex flex-col">
-                      <label className="text-white mb-2 font-bold text-sm tracking-wide">Username:</label>
-                      <input 
-                        type="text" 
-                        required minLength={4}
-                        placeholder="Enter your username"
-                        value={formData.username}
-                        onChange={e => setFormData({...formData, username: e.target.value})}
-                        className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e] transition-shadow" 
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-white mb-2 font-bold text-sm tracking-wide">Password:</label>
-                      <input 
-                        type="password" 
-                        required minLength={6}
-                        placeholder="Enter secure password"
-                        value={formData.password}
-                        onChange={e => setFormData({...formData, password: e.target.value})}
-                        className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e] transition-shadow" 
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-white mb-2 font-bold text-sm tracking-wide">Email:</label>
-                      <input 
-                        type="email" 
-                        required
-                        placeholder="your@email.com"
-                        value={formData.email}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                        className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e] transition-shadow" 
-                      />
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="text-white mb-2 font-bold text-sm tracking-wide">Date of Birth:</label>
-                      <input 
-                        type="date" 
-                        required
-                        value={formData.dob}
-                        onChange={e => setFormData({...formData, dob: e.target.value})}
-                        className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e] transition-shadow" 
-                      />
-                    </div>
+                  <div className="bg-black/60 p-8 rounded-[15px] w-full max-w-[400px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10">
                     
-                    <div className="flex justify-center mt-4">
-                      <button 
-                        type="submit" 
-                        disabled={isSubmitting}
-                        className="bg-white text-green-700 px-10 py-3 rounded-full text-base font-bold transition-all hover:bg-[#e0e0e0] hover:scale-105 disabled:opacity-70 cursor-pointer"
-                      >
-                        {isSubmitting ? 'Saving...' : 'Submit'}
+                    <div className="flex justify-between items-center mb-6">
+                      <h1 className="text-white text-2xl font-bold drop-shadow-[0_0_10px_rgba(0,255,0,0.8)]">
+                        {view === 'signup' ? 'Create Account' : 'Welcome Back'}
+                      </h1>
+                      <button onClick={() => setView('welcome')} className="text-gray-400 hover:text-white">
+                        <X size={24} />
                       </button>
                     </div>
-                  </form>
+                    
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                      {view === 'signup' && (
+                        <div className="flex flex-col">
+                          <label className="text-white mb-2 font-bold text-sm tracking-wide">Username:</label>
+                          <input 
+                            type="text" 
+                            required minLength={3}
+                            placeholder="CreativeName123"
+                            value={formData.username}
+                            onChange={e => setFormData({...formData, username: e.target.value})}
+                            className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e]" 
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col">
+                        <label className="text-white mb-2 font-bold text-sm tracking-wide">Email:</label>
+                        <input 
+                          type="email" 
+                          required
+                          placeholder="your@email.com"
+                          value={formData.email}
+                          onChange={e => setFormData({...formData, email: e.target.value})}
+                          className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e]" 
+                        />
+                      </div>
+
+                      <div className="flex flex-col">
+                        <label className="text-white mb-2 font-bold text-sm tracking-wide">Password:</label>
+                        <input 
+                          type="password" 
+                          required minLength={6}
+                          placeholder="At least 6 characters"
+                          value={formData.password}
+                          onChange={e => setFormData({...formData, password: e.target.value})}
+                          className="p-3 rounded-lg border-none bg-white/90 text-black text-base outline-none focus:shadow-[0_0_8px_#22c55e]" 
+                        />
+                      </div>
+                      
+                      <div className="flex flex-col mt-2">
+                        <button 
+                          type="submit" 
+                          disabled={isSubmitting}
+                          className="bg-white text-green-700 px-10 py-3 rounded-full text-base font-bold transition-all hover:bg-[#e0e0e0] hover:scale-105 disabled:opacity-70"
+                        >
+                          {isSubmitting ? 'Processing...' : (view === 'signup' ? 'Sign Up' : 'Log In')}
+                        </button>
+                      </div>
+
+                      <div className="text-center mt-4">
+                        <button 
+                          type="button" 
+                          onClick={() => setView(view === 'login' ? 'signup' : 'login')} 
+                          className="text-sm text-green-400 hover:text-green-300 underline"
+                        >
+                          {view === 'login' ? "Don't have an account? Sign up" : "Already have an account? Log in"}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               )} 
 
-              <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 px-8 py-4 rounded-lg font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1000] transition-opacity duration-300 pointer-events-none ${toast.show ? 'opacity-100' : 'opacity-0'} ${toast.isError ? 'bg-red-500 text-white' : 'bg-[#22c55e] text-white'}`}>
+              <div className={`fixed bottom-5 left-1/2 -translate-x-1/2 px-8 py-4 rounded-lg font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] z-[1000] transition-opacity duration-300 pointer-events-none text-center max-w-[90vw] ${toast.show ? 'opacity-100' : 'opacity-0'} ${toast.isError ? 'bg-red-600 text-white' : 'bg-[#22c55e] text-white'}`}>
                 {toast.text}
               </div>
             </div>
@@ -267,8 +273,6 @@
 
           return (
             <div className="min-h-screen w-full flex flex-col bg-black/40 backdrop-blur-[2px] animate-[fadeIn_0.5s_ease-in-out]">
-              
-              {/* Top Application Navigation Bar */}
               <header className="bg-[#4CAF50] text-white px-8 h-20 flex items-center justify-between shadow-lg z-20 shrink-0">
                 <div className="flex items-center gap-4">
                   {currentScreen !== 'Home' && (
@@ -276,16 +280,16 @@
                       onClick={() => setCurrentScreen('Home')}
                       className="p-2 hover:bg-black/10 rounded-full transition-colors flex items-center gap-1 text-sm font-semibold cursor-pointer"
                     >
-                      <ChevronLeft size={24} /> Back to Dashboard
+                      <ChevronLeft size={24} /> Dashboard
                     </button>
                   )}
-                  <h1 className="text-2xl font-bold tracking-wide">
+                  <h1 className="text-xl md:text-2xl font-bold tracking-wide">
                     Artistic {currentScreen !== 'Home' && `— ${currentScreen}`}
                   </h1>
                 </div> 
 
                 <div className="flex items-center gap-4">
-                  <div className="text-sm font-semibold bg-black/20 px-4 py-2 rounded-full border border-white/10">
+                  <div className="hidden md:block text-sm font-semibold bg-black/20 px-4 py-2 rounded-full border border-white/10">
                     👤 {username}
                   </div>
                   <button 
@@ -297,7 +301,6 @@
                 </div>
               </header> 
 
-              {/* Fullscreen Content Area */}
               <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-10 flex flex-col">
                 {currentScreen === 'Home' && <HomeScreen navigate={setCurrentScreen} />}
                 {currentScreen === 'Chat' && <ChatScreen user={user} username={username} />}
@@ -309,7 +312,6 @@
         } 
 
         // --- Fullscreen App Screens --- 
-
         function HomeScreen({ navigate }) {
           const tiles = [
             { key: 'Suggestions', color: '#8BC34A', icon: Lightbulb, desc: 'View discussions and give feedback on community artwork' },
@@ -519,12 +521,11 @@
         } 
 
         function CreationUploadModal({ user, username, onClose }) {
-          const [tab, setTab] = useState('upload'); // 'upload' or 'draw'
+          const [tab, setTab] = useState('upload'); 
           const [imagePreview, setImagePreview] = useState(null);
           const canvasRef = useRef(null);
           const [isDrawingProcess, setIsDrawingProcess] = useState(false); 
 
-          // Handle file upload
           const handleFileUpload = (e) => {
             const file = e.target.files[0];
             if (!file) return; 
@@ -536,7 +537,6 @@
             reader.readAsDataURL(file);
           }; 
 
-          // Canvas setup when switching to draw tab
           useEffect(() => {
             if (tab === 'draw') {
               const canvas = canvasRef.current;
@@ -620,7 +620,6 @@
                   </button>
                 </div> 
 
-                {/* Tabs for Upload vs Draw */}
                 <div className="flex bg-gray-100 p-1 rounded-xl w-full mb-4">
                   <button
                     onClick={() => setTab('upload')}
@@ -748,8 +747,8 @@
                     return (
                       <div key={art.id} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden flex flex-col md:flex-row">
                         <div className="bg-gray-50 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-gray-200 md:w-1/3">
-                           <img src={art.imageData} alt="Artwork" className="w-48 h-48 object-cover rounded-xl shadow border border-gray-100 mb-3" />
-                           <span className="text-xs font-bold text-gray-600">Artist: {art.authorName || 'Unknown'}</span>
+                          <img src={art.imageData} alt="Artwork" className="w-48 h-48 object-cover rounded-xl shadow border border-gray-100 mb-3" />
+                          <span className="text-xs font-bold text-gray-600">Artist: {art.authorName || 'Unknown'}</span>
                         </div>
                         
                         <div className="flex-1 flex flex-col justify-between p-4 md:p-6 bg-white">
@@ -760,29 +759,30 @@
                                 <p className="text-sm text-gray-400 italic">No suggestions yet. Be the first to share your thoughts!</p>
                               ) : (
                                 suggestions.map(s => (
-                                  <div key={s.id} className="bg-gray-50 p-3 rounded-xl text-sm flex flex-col border border-gray-100">
-                                    <span className="font-bold text-[#8BC34A] text-xs mb-0.5">{s.authorName || 'Unknown'}</span>
-                                    <span className="text-gray-700 leading-normal">{s.text}</span>
+                                  <div key={s.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-xs font-bold text-[#8BC34A]">{s.authorName || 'Anonymous'}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-700">{s.text}</p>
                                   </div>
                                 ))
                               )}
                             </div>
-                          </div> 
+                          </div>
 
-                          <div className="flex gap-2 pt-2 border-t border-gray-100">
+                          <div className="flex gap-2">
                             <input
                               type="text"
-                              placeholder="Give a suggestion or feedback..."
                               value={commentInputs[art.id] || ''}
-                              onChange={(e) => setCommentInputs({...commentInputs, [art.id]: e.target.value})}
-                              className="flex-1 bg-gray-50 text-black text-sm rounded-xl px-4 py-2.5 border border-gray-200 outline-none focus:border-[#8BC34A]"
+                              onChange={(e) => setCommentInputs({ ...commentInputs, [art.id]: e.target.value })}
+                              placeholder="Write a suggestion or feedback..."
+                              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#8BC34A]/50 text-black"
                             />
                             <button
                               onClick={() => sendSuggestion(art.id)}
-                              disabled={!commentInputs[art.id]?.trim()}
-                              className="bg-[#8BC34A] hover:bg-[#7cb342] text-white px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 cursor-pointer transition-colors shadow"
+                              className="bg-[#8BC34A] hover:bg-[#7cb342] text-white px-4 py-2 rounded-xl font-bold text-sm cursor-pointer transition-colors"
                             >
-                              Send
+                              Post
                             </button>
                           </div>
                         </div>
@@ -793,14 +793,14 @@
               </div>
             </div>
           );
-        } 
+        }
 
-        // Render the app!
+        // Render the React App into the root DOM node
         const root = createRoot(document.getElementById('root'));
         root.render(<App />);
-
     </script>
 </body>
 </html>
+
 
 
