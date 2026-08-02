@@ -186,9 +186,10 @@
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
               `}</style> 
 
-              <header className="fixed top-0 left-0 w-full h-24 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
-                {/* Increased logo size */}
-                <img src="./artistic logo.png" alt="Artistic Logo" className="h-24 md:h-32 w-auto object-contain mix-blend-screen py-2" />
+              {/* Increased header height */}
+              <header className="fixed top-0 left-0 w-full h-32 md:h-36 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
+                {/* Extra large logo dimensions */}
+                <img src="./artistic logo.png" alt="Artistic Logo" className="h-28 md:h-32 w-auto object-contain mix-blend-screen py-1" />
                 
                 <nav className="flex gap-4 md:gap-10">
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Homepage</a>
@@ -197,7 +198,7 @@
               </header> 
 
               {view === 'welcome' ? (
-                <main className="flex flex-col items-center justify-center flex-1 pt-24 text-center px-4 animate-[fadeIn_0.5s_ease-in-out]">
+                <main className="flex flex-col items-center justify-center flex-1 pt-32 text-center px-4 animate-[fadeIn_0.5s_ease-in-out]">
                   <p className="text-[8vw] md:text-[5vw] font-serif font-bold text-[#c0c0c0] mb-10 drop-shadow-[2px_2px_8px_rgba(0,0,0,0.7)] leading-[1.2] max-w-[1000px]">
                     Share your art, with millions of Artists
                   </p>
@@ -217,7 +218,7 @@
                   </div>
                 </main>
               ) : (
-                <div className="flex flex-col justify-center items-center min-h-screen pt-24 px-4 animate-[fadeIn_0.5s_ease-in-out] w-full">
+                <div className="flex flex-col justify-center items-center min-h-screen pt-32 px-4 animate-[fadeIn_0.5s_ease-in-out] w-full">
                   <div className="bg-black/60 p-8 rounded-[15px] w-full max-w-[400px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10">
                     
                     <div className="flex justify-between items-center mb-6">
@@ -304,7 +305,8 @@
 
           return (
             <div className="min-h-screen w-full flex flex-col bg-black/40 backdrop-blur-[2px] animate-[fadeIn_0.5s_ease-in-out]">
-              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-24 flex items-center justify-between shadow-lg z-20 shrink-0">
+              {/* Increased header height */}
+              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-32 md:h-36 flex items-center justify-between shadow-lg z-20 shrink-0">
                 <div className="flex items-center gap-4">
                   {currentScreen !== 'Home' && (
                     <button 
@@ -315,7 +317,7 @@
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                    <img src="./artistic logo.png" alt="Artistic Logo" className="h-20 md:h-28 w-auto object-contain mix-blend-screen py-1" />
+                    <img src="./artistic logo.png" alt="Artistic Logo" className="h-28 md:h-32 w-auto object-contain mix-blend-screen py-1" />
                     {currentScreen !== 'Home' && currentScreen !== 'Portfolio' && (
                       <span className="text-xl md:text-2xl font-bold tracking-wide hidden sm:inline text-white/90">
                         — {currentScreen}
@@ -1004,4 +1006,5 @@
     </script>
 </body>
 </html>
+
 
