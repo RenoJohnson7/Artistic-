@@ -48,12 +48,10 @@
         const auth = getAuth(app);
         const db = getFirestore(app);  
 
-        // Search icon for lightbox overlay
         const Search = ({ size }) => (
           <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         );
 
-        // Shared Image Lightbox Component for full-size viewing
         function ImageLightbox({ src, onClose }) {
           if (!src) return null;
           return (
@@ -186,10 +184,11 @@
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
               `}</style> 
 
-              {/* Increased header height */}
-              <header className="fixed top-0 left-0 w-full h-32 md:h-36 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
-                {/* Extra large logo dimensions */}
-                <img src="./artistic logo.png" alt="Artistic Logo" className="h-28 md:h-32 w-auto object-contain mix-blend-screen py-1" />
+              <header className="fixed top-0 left-0 w-full h-24 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
+                {/* Forced scale up */}
+                <div className="flex items-center h-full overflow-hidden">
+                  <img src="./artistic logo.png" alt="Artistic Logo" className="h-40 md:h-48 w-auto object-contain mix-blend-screen transform scale-150 origin-left" />
+                </div>
                 
                 <nav className="flex gap-4 md:gap-10">
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Homepage</a>
@@ -198,7 +197,7 @@
               </header> 
 
               {view === 'welcome' ? (
-                <main className="flex flex-col items-center justify-center flex-1 pt-32 text-center px-4 animate-[fadeIn_0.5s_ease-in-out]">
+                <main className="flex flex-col items-center justify-center flex-1 pt-24 text-center px-4 animate-[fadeIn_0.5s_ease-in-out]">
                   <p className="text-[8vw] md:text-[5vw] font-serif font-bold text-[#c0c0c0] mb-10 drop-shadow-[2px_2px_8px_rgba(0,0,0,0.7)] leading-[1.2] max-w-[1000px]">
                     Share your art, with millions of Artists
                   </p>
@@ -218,7 +217,7 @@
                   </div>
                 </main>
               ) : (
-                <div className="flex flex-col justify-center items-center min-h-screen pt-32 px-4 animate-[fadeIn_0.5s_ease-in-out] w-full">
+                <div className="flex flex-col justify-center items-center min-h-screen pt-24 px-4 animate-[fadeIn_0.5s_ease-in-out] w-full">
                   <div className="bg-black/60 p-8 rounded-[15px] w-full max-w-[400px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10">
                     
                     <div className="flex justify-between items-center mb-6">
@@ -305,8 +304,7 @@
 
           return (
             <div className="min-h-screen w-full flex flex-col bg-black/40 backdrop-blur-[2px] animate-[fadeIn_0.5s_ease-in-out]">
-              {/* Increased header height */}
-              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-32 md:h-36 flex items-center justify-between shadow-lg z-20 shrink-0">
+              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-24 flex items-center justify-between shadow-lg z-20 shrink-0">
                 <div className="flex items-center gap-4">
                   {currentScreen !== 'Home' && (
                     <button 
@@ -317,7 +315,10 @@
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                    <img src="./artistic logo.png" alt="Artistic Logo" className="h-28 md:h-32 w-auto object-contain mix-blend-screen py-1" />
+                    {/* Forced scale up */}
+                    <div className="flex items-center h-full overflow-hidden">
+                      <img src="./artistic logo.png" alt="Artistic Logo" className="h-40 md:h-48 w-auto object-contain mix-blend-screen transform scale-150 origin-left" />
+                    </div>
                     {currentScreen !== 'Home' && currentScreen !== 'Portfolio' && (
                       <span className="text-xl md:text-2xl font-bold tracking-wide hidden sm:inline text-white/90">
                         — {currentScreen}
