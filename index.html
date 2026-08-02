@@ -184,10 +184,10 @@
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
               `}</style> 
 
-              <header className="fixed top-0 left-0 w-full h-24 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
-                {/* Forced scale up */}
-                <div className="flex items-center h-full overflow-hidden">
-                  <img src="./artistic logo.png" alt="Artistic Logo" className="h-40 md:h-48 w-auto object-contain mix-blend-screen transform scale-150 origin-left" />
+              <header className="fixed top-0 left-0 w-full h-24 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100] overflow-hidden">
+                {/* Scaled up heavily with restricted container box */}
+                <div className="w-44 md:w-56 h-full flex items-center overflow-hidden">
+                  <img src="./artistic logo.png" alt="Artistic Logo" className="w-full object-cover mix-blend-screen transform scale-[2.5] origin-left" />
                 </div>
                 
                 <nav className="flex gap-4 md:gap-10">
@@ -304,7 +304,7 @@
 
           return (
             <div className="min-h-screen w-full flex flex-col bg-black/40 backdrop-blur-[2px] animate-[fadeIn_0.5s_ease-in-out]">
-              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-24 flex items-center justify-between shadow-lg z-20 shrink-0">
+              <header className="bg-[#4CAF50] text-white px-4 md:px-8 h-24 flex items-center justify-between shadow-lg z-20 shrink-0 overflow-hidden">
                 <div className="flex items-center gap-4">
                   {currentScreen !== 'Home' && (
                     <button 
@@ -315,9 +315,9 @@
                     </button>
                   )}
                   <div className="flex items-center gap-2">
-                    {/* Forced scale up */}
-                    <div className="flex items-center h-full overflow-hidden">
-                      <img src="./artistic logo.png" alt="Artistic Logo" className="h-40 md:h-48 w-auto object-contain mix-blend-screen transform scale-150 origin-left" />
+                    {/* Scaled up heavily with restricted container box */}
+                    <div className="w-44 md:w-56 h-full flex items-center overflow-hidden">
+                      <img src="./artistic logo.png" alt="Artistic Logo" className="w-full object-cover mix-blend-screen transform scale-[2.5] origin-left" />
                     </div>
                     {currentScreen !== 'Home' && currentScreen !== 'Portfolio' && (
                       <span className="text-xl md:text-2xl font-bold tracking-wide hidden sm:inline text-white/90">
