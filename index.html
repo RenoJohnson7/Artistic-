@@ -187,7 +187,9 @@
               `}</style> 
 
               <header className="fixed top-0 left-0 w-full h-20 bg-[#166534] flex items-center justify-between px-6 md:px-10 shadow-[0_4px_6px_rgba(0,0,0,0.3)] z-[100]">
-                <h1 className="text-2xl md:text-[28px] font-bold text-white">Artistic</h1>
+                {/* Logo Image with mix-blend-screen to remove black background */}
+                <img src="./artistic logo.png" alt="Artistic Logo" className="h-12 md:h-16 object-contain mix-blend-screen" />
+                
                 <nav className="flex gap-4 md:gap-10">
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Homepage</a>
                   <a href="#" className="text-sm md:text-[18px] text-white font-bold hover:text-[#a3ffa3] transition-colors">Server</a>
@@ -312,9 +314,14 @@
                       <ChevronLeft size={24} /> <span className="hidden md:inline">Dashboard</span>
                     </button>
                   )}
-                  <h1 className="text-xl md:text-2xl font-bold tracking-wide">
-                    Artistic {currentScreen !== 'Home' && currentScreen !== 'Portfolio' && `— ${currentScreen}`}
-                  </h1>
+                  <div className="flex items-center gap-2">
+                    <img src="./artistic logo.png" alt="Artistic Logo" className="h-10 md:h-12 object-contain mix-blend-screen" />
+                    {currentScreen !== 'Home' && currentScreen !== 'Portfolio' && (
+                      <span className="text-xl md:text-2xl font-bold tracking-wide hidden sm:inline text-white/90">
+                        — {currentScreen}
+                      </span>
+                    )}
+                  </div>
                 </div> 
 
                 <div className="flex items-center gap-3 md:gap-4">
@@ -997,5 +1004,6 @@
     </script>
 </body>
 </html>
+
 
 
