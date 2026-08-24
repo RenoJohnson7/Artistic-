@@ -6,11 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-     
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -22,24 +20,18 @@ jobs:
           java-version: '21'
       - name: Prepare Web Files
         run: |
-          # Create a folder for the web files
           mkdir www
-          # Copy everything (HTML, CSS, JS) into the www folder, excluding Github files
           rsync -a --exclude='www' --exclude='.git' --exclude='.github' ./ www/
       - name: Initialize Capacitor
         run: |
-          # Create package.json
           npm init -y
-          # Install Capacitor tools
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          # Create Capacitor config file for the app
           echo '{
           "appId": "com.renojohnson.artistic",
           "appName": "Artistic",
           "webDir": "www",
           "bundledWebRuntime": false
           }' > capacitor.config.json
-          # Generate the Android project natively
           npx cap add android
       - name: Build Debug APK
         run: |
