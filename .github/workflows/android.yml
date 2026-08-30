@@ -1,7 +1,7 @@
 name: Web to APK Builder (Capacitor)
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master"]
   workflow_dispatch:
 jobs:
   build:
@@ -21,18 +21,23 @@ jobs:
       - name: Prepare Web Files
         run: |
           mkdir www
-          rsync -a --exclude='www' --exclude='.git' --exclude='.github' ./ www/
+          rsync -a --exclude='www' --exclude='.git' --exclude='.github' ./www/
       - name: Initialize Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
           echo '{
-          "appId": "com.renojohnson.artistic",
+          "appld": "com.renojohnson.artistic",
           "appName": "Artistic",
           "webDir": "www",
           "bundledWebRuntime": false
           }' > capacitor.config.json
           npx cap add android
+          # Organize the logo for the asset generator
+          mkdir -p assets
+          if [ -f "logo.png" ]; then mv logo.png assets/logo.png; fi
+          # Generate the required icon sizes for Android
+          npx @capacitor/assets generate --android
       - name: Build Debug APK
         run: |
           cd android
