@@ -26,21 +26,28 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
-          echo '{
+          # Forcefully create the config file
+          cat <<EOF > capacitor.config.json
+          {
+          }
           "appld": "com.renojohnson.artistic",
           "appName": "Artistic",
-          "webDir": "www",
-          "bundledWebRuntime": false
-          }' > capacitor.config.json
+          "webDir": "www"
+          EOF
+          # Print the file to the logs to prove it exists
+          echo "--- Checking Config File ---"
+          cat capacitor.config.json
+          echo "-
+          # Add Android platform
           npx cap add android
-          # Check for the image, rename it to icon.png, and generate assets safely
+          # Handle the icon generator safely
           mkdir -p assets
           if [ -f "logo.png" ]; then
           mv logo.png assets/icon.png
           npx @capacitor/assets generate --android
           else
-          echo "No logo.png found. Skipping custom icons so the build does not crash."
           fi
+          echo "No logo.png found. Skipping custom icons."
       - name: Build Debug APK
         run: |
           cd android
